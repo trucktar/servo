@@ -80,7 +80,7 @@ def tasks(task_for):
     elif task_for == "try-windows-ami":
         CONFIG.git_sha_is_current_head()
         CONFIG.windows_worker_type = os.environ["NEW_AMI_WORKER_TYPE"]
-        windows_unit(cached=False)
+        windows_unit(cached=False, rdp=True)
 
     # https://tools.taskcluster.net/hooks/project-servo/daily
     elif task_for == "daily":
@@ -359,9 +359,9 @@ def uwp_nightly():
     )
 
 
-def windows_unit(cached=True):
+def windows_unit(cached=True, rdp=False):
     task = (
-        windows_build_task("Dev build + unit tests")
+        windows_build_task("Dev build + unit tests", rdp=rdp)
         .with_treeherder("Windows x64", "Unit")
         .with_script(
             # Not necessary as this would be done at the start of `build`,
@@ -742,7 +742,7 @@ def linux_build_task(name, *, build_env=build_env):
     return task
 
 
-def windows_build_task(name, package=True, arch="x86_64"):
+def windows_build_task(name, package=True, arch="x86_64", rdp=False):
     hashes = {
         "devel": {
             "x86_64": "c136cbfb0330041d52fe6ec4e3e468563176333c857f6ed71191ebc37fc9d605",
@@ -773,30 +773,27 @@ def windows_build_task(name, package=True, arch="x86_64"):
         .with_rustup()
     )
     if arch in hashes["non-devel"] and arch in hashes["devel"]:
-        task = (
-            task.with_repacked_msi(
-                url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
-                     "%s/gstreamer-1.0-%s-%s-%s.msi" % (version, prefix[arch], arch, version)),
-                sha256=hashes["non-devel"][arch],
-                path="gst",
-            )
-            .with_repacked_msi(
-                url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
-                     "%s/gstreamer-1.0-devel-%s-%s-%s.msi" % (version, prefix[arch], arch, version)),
-                sha256=hashes["devel"][arch],
-                path="gst",
-            )
+        task.with_repacked_msi(
+            url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
+                 "%s/gstreamer-1.0-%s-%s-%s.msi" % (version, prefix[arch], arch, version)),
+            sha256=hashes["non-devel"][arch],
+            path="gst",
+        )
+        task.with_repacked_msi(
+            url=("https://gstreamer.freedesktop.org/data/pkg/windows/" +
+                 "%s/gstreamer-1.0-devel-%s-%s-%s.msi" % (version, prefix[arch], arch, version)),
+            sha256=hashes["devel"][arch],
+            path="gst",
         )
     if package:
-        task = (
-            task
-            .with_directory_mount(
-                "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip",
-                sha256="37f0a533b0978a454efb5dc3bd3598becf9660aaf4287e55bf68ca6b527d051d",
-                path="wix",
-            )
-            .with_path_from_homedir("wix")
+        task.with_directory_mount(
+            "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip",
+            sha256="37f0a533b0978a454efb5dc3bd3598becf9660aaf4287e55bf68ca6b527d051d",
+            path="wix",
         )
+        task.with_path_from_homedir("wix")
+    if rdp:
+        task.with_rdp_info(artifact_name="project/servo/rdp-info")
     return task
 
 
