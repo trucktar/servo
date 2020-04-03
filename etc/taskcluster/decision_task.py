@@ -715,7 +715,6 @@ def windows_task(name):
 def macos_task(name):
     return (
         decisionlib.MacOsGenericWorkerTask(name)
-        .with_provisioner_id("proj-servo")
         .with_worker_type(CONFIG.macos_worker_type)
         .with_treeherder_required()
     )

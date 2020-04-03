@@ -464,6 +464,9 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
     with_early_script = chaining(prepend_to_attr, "scripts")
 
     def build_worker_payload(self):
+        if self.rdp_info_artifact_name:
+            rdp_scope = "generic-worker:allow-rdp:%s/%s" % (self.provisioner_id, self.worker_type)
+            self.scopes.append(rdp_scope)
         return dict_update_if_truthy(
             super().build_worker_payload(),
             rdpInfo=self.rdp_info_artifact_name,
