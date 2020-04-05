@@ -19,7 +19,6 @@ use std::collections::HashMap;
 #[cfg(not(windows))]
 use std::env;
 use std::ffi::OsStr;
-use std::path::PathBuf;
 use std::process;
 
 #[derive(Deserialize, Serialize)]
@@ -49,6 +48,7 @@ impl UnprivilegedContent {
 pub fn content_process_sandbox_profile() -> Profile {
     use embedder_traits::resources;
     use gaol::platform;
+    use std::path::PathBuf;
 
     let mut operations = vec![
         Operation::FileReadAll(PathPattern::Literal(PathBuf::from("/dev/urandom"))),
