@@ -5,7 +5,9 @@
 use crate::pipeline::UnprivilegedPipelineContent;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 use embedder_traits::resources;
+#[cfg(not(windows))]
 use gaol::profile::{Operation, PathPattern, Profile};
+#[cfg(not(windows))]
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::Error;
 use servo_config::opts::Opts;
@@ -79,7 +81,14 @@ pub fn content_process_sandbox_profile() -> Profile {
 }
 
 /// Our content process sandbox profile on Linux. As restrictive as possible.
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(
+    not(target_os = "macos"),
+    not(target_os = "windows"),
+    not(target_os = "ios"),
+    not(target_os = "android"),
+    not(target_arch = "arm"),
+    not(target_arch = "aarch64")
+))]
 pub fn content_process_sandbox_profile() -> Profile {
     let mut operations = vec![Operation::FileReadAll(PathPattern::Literal(PathBuf::from(
         "/dev/urandom",
@@ -97,6 +106,18 @@ pub fn content_process_sandbox_profile() -> Profile {
     );
 
     Profile::new(operations).expect("Failed to create sandbox profile!")
+}
+
+#[cfg(any(
+    target_os = "windows",
+    target_os = "ios",
+    target_os = "android",
+    target_arch = "arm",
+    target_arch = "aarch64",
+))]
+pub fn content_process_sandbox_profile() {
+    error!("Sandboxed multiprocess is not supported on this platform.");
+    process::exit(1);
 }
 
 #[cfg(any(
