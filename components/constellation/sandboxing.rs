@@ -4,11 +4,14 @@
 
 use crate::pipeline::UnprivilegedPipelineContent;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
-use embedder_traits::resources;
-#[cfg(not(windows))]
+#[cfg(all(
+    not(target_os = "windows"),
+    not(target_os = "ios"),
+    not(target_os = "android"),
+    not(target_arch = "arm"),
+    not(target_arch = "aarch64")
+))]
 use gaol::profile::{Operation, PathPattern, Profile};
-#[cfg(not(windows))]
-use ipc_channel::ipc::IpcSender;
 use ipc_channel::Error;
 use servo_config::opts::Opts;
 use servo_config::prefs::PrefValue;
@@ -44,6 +47,7 @@ impl UnprivilegedContent {
 /// Our content process sandbox profile on Mac. As restrictive as possible.
 #[cfg(target_os = "macos")]
 pub fn content_process_sandbox_profile() -> Profile {
+    use embedder_traits::resources;
     use gaol::platform;
 
     let mut operations = vec![
@@ -90,6 +94,8 @@ pub fn content_process_sandbox_profile() -> Profile {
     not(target_arch = "aarch64")
 ))]
 pub fn content_process_sandbox_profile() -> Profile {
+    use embedder_traits::resources;
+
     let mut operations = vec![Operation::FileReadAll(PathPattern::Literal(PathBuf::from(
         "/dev/urandom",
     )))];
@@ -126,7 +132,7 @@ pub fn content_process_sandbox_profile() {
     all(target_arch = "aarch64", not(target_os = "windows"))
 ))]
 pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
-    use ipc_channel::ipc::IpcOneShotServer;
+    use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
     // Note that this function can panic, due to process creation,
     // avoiding this panic would require a mechanism for dealing
     // with low-resource scenarios.
@@ -155,7 +161,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
 ))]
 pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
     use gaol::sandbox::{self, Sandbox, SandboxMethods};
-    use ipc_channel::ipc::IpcOneShotServer;
+    use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
 
     impl CommandMethods for sandbox::Command {
         fn arg<T>(&mut self, arg: T)
