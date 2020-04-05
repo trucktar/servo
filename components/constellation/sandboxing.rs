@@ -95,6 +95,7 @@ pub fn content_process_sandbox_profile() -> Profile {
 ))]
 pub fn content_process_sandbox_profile() -> Profile {
     use embedder_traits::resources;
+    use std::path::PathBuf;
 
     let mut operations = vec![Operation::FileReadAll(PathPattern::Literal(PathBuf::from(
         "/dev/urandom",
@@ -211,7 +212,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
 }
 
 #[cfg(any(target_os = "windows", target_os = "ios"))]
-pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
+pub fn spawn_multiprocess(_content: UnprivilegedContent) -> Result<(), Error> {
     error!("Multiprocess is not supported on Windows or iOS.");
     process::exit(1);
 }
